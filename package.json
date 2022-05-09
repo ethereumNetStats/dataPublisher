@@ -1,0 +1,10 @@
+{
+  "name": "eth_chart_socket_server",
+  "version": "1.0.0",
+  "dependencies": {
+    "typescript": "^4.6.3",
+    "socket.io-client": "^4.4.1",
+    "socket.io": "^4.4.1"
+  },
+  "type": "module"
+}
