@@ -10,8 +10,11 @@ let minutelyBasicChartData = [];
 let hourlyBasicChartData = [];
 let dailyBasicChartData = [];
 let weeklyBasicChartData = [];
+let countingAddressData = { minutely: [], hourly: [], daily: [], weekly: [] };
 const clientName = 'ethChartSocketServer';
-const ethChartSocketClient = io('ws://172.26.13.237:2226', {
+const wsServerVpnAddress = 'ws://172.22.1.90:2226';
+const wsServerLanAddress = 'ws://172.26.13.237:2226';
+const ethChartSocketClient = io(wsServerLanAddress, {
     forceNew: true,
     query: {
         name: clientName,
@@ -107,6 +110,14 @@ ethChartSocketClient.on('weeklyBasicNewData', (weeklyBasicNewData) => {
     }
     ethChartSocketServer.emit('weeklyBasicNewDataToFrontend', weeklyBasicNewData);
     console.log(`${currentTimeReadable()} | Emit the weeklyBasicNewDataToFrontend event.`);
+});
+ethChartSocketClient.on("resultOfCountingAddress", (resultOfCountingAddress) => {
+    if (resultOfCountingAddress !== null) {
+        countingAddressData = resultOfCountingAddress;
+        console.log(`${currentTimeReadable()} | Receive the resultOfCountingAddress event from the dataPoolServer.`);
+    }
+    ethChartSocketServer.emit('countingAddressData', (countingAddressData));
+    console.log(`${currentTimeReadable()} | Emit the countingAddressData event.`);
 });
 const httpsServer = https.createServer({
     key: fs.readFileSync(process.env.ssl_certification_privkey),

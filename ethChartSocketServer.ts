@@ -32,22 +32,72 @@ type recordOfEthDB = {
 
 type recordOfEthDBArray = Array<recordOfEthDB>;
 
+type addresses = {
+    startTime: number,
+    endTime: number,
+    value: number,
+}
+
+type arrayOfAddresses = Array<addresses>
+
+type addressesInTimeRange = {
+    minutely: arrayOfAddresses,
+    hourly: arrayOfAddresses,
+    daily: arrayOfAddresses,
+    weekly: arrayOfAddresses
+}
+
+
 //Define the type of the server => client events.
-type ServerToClientEvents = {
+type ServerToEthChartSocketClientEvents = {
+    stillNoMinutelyBasicInitialData: () => void,
+    stillNoHourlyBasicInitialData: () => void,
+    stillNoDailyBasicInitialData: () => void,
+    stillNoWeeklyBasicInitialData: () => void,
+
+    minutelyBasicInitialData: (minutelyBasicInitialData: recordOfEthDBArray) => void,
+    hourlyBasicInitialData: (hourlyBasicInitialData: recordOfEthDBArray) => void,
+    dailyBasicInitialData: (dailyBasicInitialData: recordOfEthDBArray) => void,
+    weeklyBasicInitialData: (weeklyBasicInitialData: recordOfEthDBArray) => void,
+
+    minutelyBasicNewData: (minutelyBasicNewData: recordOfEthDB) => void,
+    hourlyBasicNewData: (hourlyBasicNewData: recordOfEthDB) => void,
+    dailyBasicNewData: (dailyBasicNewData: recordOfEthDB) => void,
+    weeklyBasicNewData: (weeklyBasicNewData: recordOfEthDB) => void,
+
+    resultOfCountingAddress: (resultOfCountingAddress: addressesInTimeRange) => void,
 }
 
 //Define the type of the client => server events.
-type ClientToServerEvents = {
+type ethChartSocketClientToServerEvents = {
+    requestMinutelyBasicInitialData: () => void,
+    requestHourlyBasicInitialData: () => void,
+    requestDailyBasicInitialData: () => void,
+    requestWeeklyBasicInitialData: () => void,
+
+}
+
+type ethChartSocketServerToFrontendEvents = {
+    minutelyInitialBasicDataToFrontend: () => void,
+    countingAddressData: () => void,
+}
+
+type frontendToEthChartSocketServerEvents = {
+    requestMinutelyInitialBasicData: () => void,
 }
 
 let minutelyBasicChartData: recordOfEthDBArray = [];
 let hourlyBasicChartData: recordOfEthDBArray = [];
 let dailyBasicChartData: recordOfEthDBArray = [];
 let weeklyBasicChartData: recordOfEthDBArray = [];
+let countingAddressData: addressesInTimeRange = {minutely: [], hourly: [], daily: [], weekly: []};
 
 //Launch a socket client to get the data from the data pool server.
 const clientName: string = 'ethChartSocketServer';
-const ethChartSocketClient: Socket = io('ws://172.26.13.237:2226', {
+
+const wsServerVpnAddress = 'ws://172.22.1.90:2226';
+const wsServerLanAddress = 'ws://172.26.13.237:2226';
+const ethChartSocketClient: Socket<ServerToEthChartSocketClientEvents, ethChartSocketClientToServerEvents> = io(wsServerLanAddress, {
     forceNew: true,
     query: {
         name: clientName,
@@ -159,6 +209,16 @@ ethChartSocketClient.on('weeklyBasicNewData', (weeklyBasicNewData: recordOfEthDB
     console.log(`${currentTimeReadable()} | Emit the weeklyBasicNewDataToFrontend event.`);
 });
 
+//Renew & send number of addresses data
+ethChartSocketClient.on("resultOfCountingAddress", (resultOfCountingAddress: addressesInTimeRange) => {
+    if (resultOfCountingAddress !== null) {
+        countingAddressData = resultOfCountingAddress;
+        console.log(`${currentTimeReadable()} | Receive the resultOfCountingAddress event from the dataPoolServer.`);
+    }
+    ethChartSocketServer.emit('countingAddressData', (countingAddressData));
+    console.log(`${currentTimeReadable()} | Emit the countingAddressData event.`);
+});
+
 //Launch ethChart socket server to serve the chart data to frontEnd.
 const httpsServer = https.createServer({
     key: fs.readFileSync(process.env.ssl_certification_privkey as string),
@@ -166,7 +226,7 @@ const httpsServer = https.createServer({
     ca: fs.readFileSync(process.env.ssl_certification_chain as string),
 })
 
-const ethChartSocketServer: Server = new Server<ClientToServerEvents, ServerToClientEvents>(httpsServer, {
+const ethChartSocketServer: Server = new Server<frontendToEthChartSocketServerEvents, ethChartSocketServerToFrontendEvents>(httpsServer, {
     cors: {
         origin: '*',
     }
