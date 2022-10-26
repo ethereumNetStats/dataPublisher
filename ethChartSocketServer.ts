@@ -1,229 +1,150 @@
+//Import environment variable
+import "dotenv/config";
+
+//Import packages.
 import {io, Socket} from "socket.io-client";
 import {Server} from "socket.io";
 import fs from "fs";
 import https from 'https';
 
-const currentTimeReadable = (): string => {
-    let date_obj = new Date();
-    return `${date_obj.getUTCFullYear()}-${('0' + (date_obj.getUTCMonth() + 1)).slice(-2)}-${('0' + date_obj.getUTCDate()).slice(-2)} ${('0' + date_obj.getUTCHours()).slice(-2)}:${('0' + date_obj.getUTCMinutes()).slice(-2)}:${('0' + date_obj.getUTCSeconds()).slice(-2)}`;
-};
+//Import self-made packages.
+import {currentTimeReadable} from "@pierogi.dev/readable_time";
 
-type recordOfEthDB = {
-    'id'?: number,
-    'startTimeReadable'?: string,
-    'endTimeReadable'?: string,
-    'startTimeUnix': number,
-    'endTimeUnix': number,
-    'actualStartTimeUnix': number,
-    'actualEndTimeUnix': number,
-    'startBlockNumber': number,
-    'endBlockNumber': number,
-    'blocks': number,
-    'totalBlockSize': number,
-    'averageBlockSize': number,
-    'totalDifficulty': number,
-    'averageDifficulty': number,
-    'totalUncleDifficulty': number,
-    'hashRate': number,
-    'transactions': number,
-    'transactionsPerBlock': number,
-    'noRecordFlag'?: boolean,
-};
+//Import types.
+import {netStats, netStatsArray} from "./types/types";
+import {
+    ServerToEthChartSocketClientEvents,
+    ethChartSocketClientToServerEvents,
+    ethChartSocketServerToFrontendEvents,
+    frontendToEthChartSocketServerEvents
+} from "./types/socketEvents";
 
-type recordOfEthDBArray = Array<recordOfEthDB>;
-
-type addresses = {
-    startTime: number,
-    endTime: number,
-    value: number,
-}
-
-type arrayOfAddresses = Array<addresses>
-
-type addressesInTimeRange = {
-    minutely: arrayOfAddresses,
-    hourly: arrayOfAddresses,
-    daily: arrayOfAddresses,
-    weekly: arrayOfAddresses
-}
-
-
-//Define the type of the server => client events.
-type ServerToEthChartSocketClientEvents = {
-    stillNoMinutelyBasicInitialData: () => void,
-    stillNoHourlyBasicInitialData: () => void,
-    stillNoDailyBasicInitialData: () => void,
-    stillNoWeeklyBasicInitialData: () => void,
-
-    minutelyBasicInitialData: (minutelyBasicInitialData: recordOfEthDBArray) => void,
-    hourlyBasicInitialData: (hourlyBasicInitialData: recordOfEthDBArray) => void,
-    dailyBasicInitialData: (dailyBasicInitialData: recordOfEthDBArray) => void,
-    weeklyBasicInitialData: (weeklyBasicInitialData: recordOfEthDBArray) => void,
-
-    minutelyBasicNewData: (minutelyBasicNewData: recordOfEthDB) => void,
-    hourlyBasicNewData: (hourlyBasicNewData: recordOfEthDB) => void,
-    dailyBasicNewData: (dailyBasicNewData: recordOfEthDB) => void,
-    weeklyBasicNewData: (weeklyBasicNewData: recordOfEthDB) => void,
-
-    resultOfCountingAddress: (resultOfCountingAddress: addressesInTimeRange) => void,
-}
-
-//Define the type of the client => server events.
-type ethChartSocketClientToServerEvents = {
-    requestMinutelyBasicInitialData: () => void,
-    requestHourlyBasicInitialData: () => void,
-    requestDailyBasicInitialData: () => void,
-    requestWeeklyBasicInitialData: () => void,
-
-}
-
-type ethChartSocketServerToFrontendEvents = {
-    minutelyInitialBasicDataToFrontend: () => void,
-    countingAddressData: () => void,
-}
-
-type frontendToEthChartSocketServerEvents = {
-    requestMinutelyInitialBasicData: () => void,
-}
-
-let minutelyBasicChartData: recordOfEthDBArray = [];
-let hourlyBasicChartData: recordOfEthDBArray = [];
-let dailyBasicChartData: recordOfEthDBArray = [];
-let weeklyBasicChartData: recordOfEthDBArray = [];
-let countingAddressData: addressesInTimeRange = {minutely: [], hourly: [], daily: [], weekly: []};
+let minutelyNetStats: netStatsArray = [];
+let hourlyNetStats: netStatsArray = [];
+let dailyNetStats: netStatsArray = [];
+let weeklyNetStats: netStatsArray = [];
 
 //Launch a socket client to get the data from the data pool server.
 const clientName: string = 'ethChartSocketServer';
 
-const wsServerVpnAddress = 'ws://172.22.1.90:2226';
-const wsServerLanAddress = 'ws://172.26.13.237:2226';
-const ethChartSocketClient: Socket<ServerToEthChartSocketClientEvents, ethChartSocketClientToServerEvents> = io(wsServerLanAddress, {
+const ethChartSocketClient: Socket<ServerToEthChartSocketClientEvents, ethChartSocketClientToServerEvents> = io(`${process.env.DATAPOOL_SERVER_LAN_ADDRESS}`, {
     forceNew: true,
     query: {
         name: clientName,
     }
 });
 
+//
+//Registering ethChartSocketClient events.
+//
+
 ethChartSocketClient.on('connect', () => {
-    console.log(`${currentTimeReadable()} | Connect with the dataPoolServer.`);
-    ethChartSocketClient.emit('requestMinutelyBasicInitialData');
-    console.log(`${currentTimeReadable()} | Emit the requestMinutelyBasicInitialData.`);
-    ethChartSocketClient.emit('requestHourlyBasicInitialData');
-    console.log(`${currentTimeReadable()} | Emit the requestHourlyBasicInitialData.`);
-    ethChartSocketClient.emit('requestDailyBasicInitialData');
-    console.log(`${currentTimeReadable()} | Emit the requestDailyBasicInitialData.`);
-    ethChartSocketClient.emit('requestWeeklyBasicInitialData');
-    console.log(`${currentTimeReadable()} | Emit the requestWeeklyBasicInitialData.`);
+    console.log(`${currentTimeReadable()} | Connect : dataPoolServer`);
+    ethChartSocketClient.emit('requestInitialMinutelyNetStats');
+    console.log(`${currentTimeReadable()} | Emit : 'requestInitialMinutelyNetStats' | To : dataPoolServer`);
+    ethChartSocketClient.emit('requestInitialHourlyNetStats');
+    console.log(`${currentTimeReadable()} | Emit : 'requestInitialHourlyNetStats' | To : dataPoolServer`);
+    ethChartSocketClient.emit('requestInitialDailyNetStats');
+    console.log(`${currentTimeReadable()} | Emit : 'requestInitialDailyNetStats' | To : dataPoolServer`);
+    ethChartSocketClient.emit('requestInitialWeeklyNetStats');
+    console.log(`${currentTimeReadable()} | Emit : 'requestInitialWeeklyNetStats' | To : dataPoolServer`);
 });
 
 
-//Re-emit each basic initial data when dataPoolServer does not have the basic initial data respectively.
-ethChartSocketClient.on('stillNoMinutelyBasicInitialData', () => {
-    console.log(`${currentTimeReadable()} | The dataPoolServer does not have the minutely basic initial data yet.`);
-    console.log(`${currentTimeReadable()} | Re-emit the requestMinutelyBasicInitialData event after 1 second.`);
-    setTimeout( () => {
-        ethChartSocketClient.emit('requestMinutelyBasicInitialData');
-        console.log(`${currentTimeReadable()} | Re-emit the requestMinutelyBasicInitialData event.`);
+//Re-emit request initial net stats events when the dataPoolServer does not have the initial net stats respectively.
+ethChartSocketClient.on('stillNoInitialMinutelyNetStats', () => {
+    console.log(`${currentTimeReadable()} | No data : The dataPoolServer does not have the initial minutely net stats yet.`);
+    setTimeout(() => {
+        ethChartSocketClient.emit('requestInitialMinutelyNetStats');
+        console.log(`${currentTimeReadable()} | Re-emit : 'requestInitialMinutelyNetStats' | To : dataPoolServer`);
     }, 2000);
 });
-ethChartSocketClient.on('stillNoHourlyBasicInitialData', () => {
-    console.log(`${currentTimeReadable()} | The dataPoolServer does not have the hourly basic initial data yet.`);
-    console.log(`${currentTimeReadable()} | Re-emit the requestHourlyBasicInitialData event after 1 second.`);
-    setTimeout( () => {
-        ethChartSocketClient.emit('requestHourlyBasicInitialData');
-        console.log(`${currentTimeReadable()} | Re-emit the requestHourlyBasicInitialData event.`);
+ethChartSocketClient.on('stillNoInitialHourlyNetStats', () => {
+    console.log(`${currentTimeReadable()} | No data : The dataPoolServer does not have the initial hourly net stats yet.`);
+    setTimeout(() => {
+        ethChartSocketClient.emit('requestInitialHourlyNetStats');
+        console.log(`${currentTimeReadable()} | Re-emit : 'requestInitialHourlyNetStats' | To : dataPoolServer`);
     }, 2000);
 });
-ethChartSocketClient.on('stillNoDailyBasicInitialData', () => {
-    console.log(`${currentTimeReadable()} | The dataPoolServer does not have the daily basic initial data yet.`);
-    console.log(`${currentTimeReadable()} | Re-emit the requestDailyBasicInitialData event after 1 second.`);
-    setTimeout( () => {
-        ethChartSocketClient.emit('requestDailyBasicInitialData');
-        console.log(`${currentTimeReadable()} | Re-emit the requestDailyBasicInitialData event.`);
+ethChartSocketClient.on('stillNoInitialDailyNetStats', () => {
+    console.log(`${currentTimeReadable()} | No data : The dataPoolServer does not have the initial daily net stats yet.`);
+    setTimeout(() => {
+        ethChartSocketClient.emit('requestInitialDailyNetStats');
+        console.log(`${currentTimeReadable()} | Re-emit : 'requestInitialDailyNetStats' | To : dataPoolServer`);
     }, 2000);
 });
-ethChartSocketClient.on('stillNoWeeklyBasicInitialData', () => {
-    console.log(`${currentTimeReadable()} | The dataPoolServer does not have the weekly basic initial data yet.`);
-    console.log(`${currentTimeReadable()} | Re-emit the requestWeeklyBasicInitialData event after 1 second.`);
-    setTimeout( () => {
-        ethChartSocketClient.emit('requestWeeklyBasicInitialData');
-        console.log(`${currentTimeReadable()} | Re-emit the requestWeeklyBasicInitialData event.`);
-    }, 60 * 1000);
+ethChartSocketClient.on('stillNoInitialWeeklyNetStats', () => {
+    console.log(`${currentTimeReadable()} | No data : The dataPoolServer does not have the initial weekly net stats yet.`);
+    setTimeout(() => {
+        ethChartSocketClient.emit('requestInitialWeeklyNetStats');
+        console.log(`${currentTimeReadable()} | Re-emit : 'requestInitialWeeklyNetStats' | To : dataPoolServer`);
+    }, 2000);
 });
 
 //Send each basic initial data.
-ethChartSocketClient.on('minutelyBasicInitialData', (minutelyBasicInitialData: recordOfEthDBArray) => {
-    console.log(`${currentTimeReadable()} | Receive the minutelyBasicInitialData from the dataPoolServer.`);
-    minutelyBasicChartData = minutelyBasicInitialData;
+ethChartSocketClient.on('initialMinutelyNetStats', (initialMinutelyNetStats: netStatsArray) => {
+    console.log(`${currentTimeReadable()} | Receive : 'initialMinutelyNetStats' | From : dataPoolServer`);
+    minutelyNetStats = initialMinutelyNetStats;
 });
 
-ethChartSocketClient.on('hourlyBasicInitialData', (hourlyBasicInitialData: recordOfEthDBArray) => {
-    console.log(`${currentTimeReadable()} | Receive the HourlyBasicInitialData from the dataPoolServer.`);
-    hourlyBasicChartData = hourlyBasicInitialData;
+ethChartSocketClient.on('initialHourlyNetStats', (initialHourlyNetStats: netStatsArray) => {
+    console.log(`${currentTimeReadable()} | Receive : 'initialHourlyNetStats' | From : dataPoolServer`);
+    hourlyNetStats = initialHourlyNetStats;
 });
 
-ethChartSocketClient.on('dailyBasicInitialData', (dailyBasicInitialData: recordOfEthDBArray) => {
-    console.log(`${currentTimeReadable()} | Receive the dailyBasicInitialData from the dataPoolServer.`);
-    dailyBasicChartData = dailyBasicInitialData;
+ethChartSocketClient.on('initialDailyNetStats', (initialDailyNetStats: netStatsArray) => {
+    console.log(`${currentTimeReadable()} | Receive : 'initialDailyNetStats' | From : dataPoolServer`);
+    dailyNetStats = initialDailyNetStats;
 });
 
-ethChartSocketClient.on('weeklyBasicInitialData', (weeklyBasicInitialData: recordOfEthDBArray) => {
-    console.log(`${currentTimeReadable()} | Receive the weeklyBasicInitialData from the dataPoolServer.`);
-    weeklyBasicChartData = weeklyBasicInitialData;
+ethChartSocketClient.on('initialWeeklyNetStats', (initialWeeklyNetStats: netStatsArray) => {
+    console.log(`${currentTimeReadable()} | Receive : 'initialWeeklyNetStats' | From : dataPoolServer`);
+    weeklyNetStats = initialWeeklyNetStats;
 });
 
 //Send each new data.
-ethChartSocketClient.on('minutelyBasicNewData', (minutelyBasicNewData: recordOfEthDB) => {
-    if (minutelyBasicChartData.length !== 0) {
-        minutelyBasicChartData = [...minutelyBasicChartData.slice(1), minutelyBasicNewData];
-        console.log(`${currentTimeReadable()} | Receive the minutelyBasicNewData event from the dataPoolServer.`);
+ethChartSocketClient.on('newMinutelyNetStats', (newMinutelyNetStats: netStats) => {
+    if (minutelyNetStats.length !== 0) {
+        minutelyNetStats = [...minutelyNetStats.slice(1), newMinutelyNetStats];
+        console.log(`${currentTimeReadable()} | Receive : 'newMinutelyNetStats' | From : dataPoolServer`);
     }
-    ethChartSocketServer.emit('minutelyBasicNewDataToFrontend', minutelyBasicNewData);
-    console.log(`${currentTimeReadable()} | Emit the minutelyBasicNewDataToFrontend event.`);
+    ethChartSocketServer.emit('newMinutelyNetStatsToFrontend', newMinutelyNetStats);
+    console.log(`${currentTimeReadable()} | Emit : 'newMinutelyNetStatsToFrontend' | To : frontend`);
 });
 
-ethChartSocketClient.on('hourlyBasicNewData', (hourlyBasicNewData: recordOfEthDB) => {
-    if (hourlyBasicChartData.length !== 0) {
-        hourlyBasicChartData = [...hourlyBasicChartData.slice(1), hourlyBasicNewData];
-        console.log(`${currentTimeReadable()} | Receive the hourlyBasicNewData event from the dataPoolServer.`);
+ethChartSocketClient.on('newHourlyNetStats', (newHourlyNetStats: netStats) => {
+    if (hourlyNetStats.length !== 0) {
+        hourlyNetStats = [...hourlyNetStats.slice(1), newHourlyNetStats];
+        console.log(`${currentTimeReadable()} | Receive : 'newHourlyNetStats' | From : dataPoolServer`);
     }
-    ethChartSocketServer.emit('hourlyBasicNewDataToFrontend', hourlyBasicNewData);
-    console.log(`${currentTimeReadable()} | Emit the hourlyBasicNewDataToFrontend event.`);
+    ethChartSocketServer.emit('newHourlyNetStatsToFrontend', newHourlyNetStats);
+    console.log(`${currentTimeReadable()} | Emit : 'newHourlyNetStatsToFrontend' | To : frontend`);
 });
 
-ethChartSocketClient.on('dailyBasicNewData', (dailyBasicNewData: recordOfEthDB) => {
-    if (dailyBasicChartData.length !== 0) {
-        dailyBasicChartData = [...dailyBasicChartData.slice(1), dailyBasicNewData];
-        console.log(`${currentTimeReadable()} | Receive the dailyBasicNewData event from the dataPoolServer.`);
+ethChartSocketClient.on('newDailyNetStats', (newDailyNetStats: netStats) => {
+    if (dailyNetStats.length !== 0) {
+        dailyNetStats = [...dailyNetStats.slice(1), newDailyNetStats];
+        console.log(`${currentTimeReadable()} | Receive : 'newDailyNetStats | From : dataPoolServer`);
     }
-    ethChartSocketServer.emit('dailyBasicNewDataToFrontend', dailyBasicNewData);
-    console.log(`${currentTimeReadable()} | Emit the dailyBasicNewDataToFrontend event.`);
+    ethChartSocketServer.emit('newDailyNetStatsToFrontend', newDailyNetStats);
+    console.log(`${currentTimeReadable()} | Emit : 'newDailyNetStatsToFrontend' | To : frontend`);
 });
 
-ethChartSocketClient.on('weeklyBasicNewData', (weeklyBasicNewData: recordOfEthDB) => {
-    if (weeklyBasicChartData.length !== 0) {
-        weeklyBasicChartData = [...weeklyBasicChartData.slice(1), weeklyBasicNewData];
-        console.log(`${currentTimeReadable()} | Receive the weeklyBasicNewData event from the dataPoolServer.`);
+ethChartSocketClient.on('newWeeklyNetStats', (newWeeklyNetStats: netStats) => {
+    if (weeklyNetStats.length !== 0) {
+        weeklyNetStats.splice(-1);
+        weeklyNetStats = [newWeeklyNetStats, ...weeklyNetStats];
+        console.log(`${currentTimeReadable()} | Receive : 'newWeeklyNetStats' | From : dataPoolServer`);
     }
-    ethChartSocketServer.emit('weeklyBasicNewDataToFrontend', weeklyBasicNewData);
-    console.log(`${currentTimeReadable()} | Emit the weeklyBasicNewDataToFrontend event.`);
-});
-
-//Renew & send number of addresses data
-ethChartSocketClient.on("resultOfCountingAddress", (resultOfCountingAddress: addressesInTimeRange) => {
-    if (resultOfCountingAddress !== null) {
-        countingAddressData = resultOfCountingAddress;
-        console.log(`${currentTimeReadable()} | Receive the resultOfCountingAddress event from the dataPoolServer.`);
-    }
-    ethChartSocketServer.emit('countingAddressData', (countingAddressData));
-    console.log(`${currentTimeReadable()} | Emit the countingAddressData event.`);
+    ethChartSocketServer.emit('newWeeklyNetStatsToFrontend', newWeeklyNetStats);
+    console.log(`${currentTimeReadable()} | Emit : 'newWeeklyNetStats' | To : Frontend`);
 });
 
 //Launch ethChart socket server to serve the chart data to frontEnd.
 const httpsServer = https.createServer({
-    key: fs.readFileSync(process.env.ssl_certification_privkey as string),
-    cert: fs.readFileSync(process.env.ssl_certification_cert as string),
-    ca: fs.readFileSync(process.env.ssl_certification_chain as string),
+    key: fs.readFileSync(`${process.env.SSL_CERTIFICATION_PRIVKEY}`),
+    cert: fs.readFileSync(`${process.env.SSL_CERTIFICATION_CERT}`),
+    ca: fs.readFileSync(`${process.env.SSL_CERTIFICATION_CHAIN}`),
 })
 
 const ethChartSocketServer: Server = new Server<frontendToEthChartSocketServerEvents, ethChartSocketServerToFrontendEvents>(httpsServer, {
@@ -232,38 +153,43 @@ const ethChartSocketServer: Server = new Server<frontendToEthChartSocketServerEv
     }
 });
 
+//
+//Registering ethChartSocketServer events.
+//
+
 ethChartSocketServer.on('connect', (frontend) => {
-    console.log(`${currentTimeReadable()} | Connect with a frontend.`);
+    console.log(`${currentTimeReadable()} | Connect : frontend`);
 
-    frontend.on('requestMinutelyInitialBasicData', () => {
-        console.log(`${currentTimeReadable()} | Receive the requestMinutelyInitialBasicData event from the frontend.`);
-        if(minutelyBasicChartData.length !== 0) {
-            frontend.emit('minutelyInitialBasicDataToFrontend', minutelyBasicChartData);
-            console.log(`${currentTimeReadable()} | Emit the minutelyInitialBasicDataToFrontend event to the frontend.`);
+    frontend.on('requestInitialMinutelyNetStats', () => {
+        console.log(`${currentTimeReadable()} | Receive : 'requestInitialMinutelyNetStats' | From : frontend`);
+        if (minutelyNetStats.length !== 0) {
+            frontend.emit('initialMinutelyNetStatsToFrontend', minutelyNetStats, () => {
+                console.log(`${currentTimeReadable()} | Emit : initialMinutelyNetStatsToFrontend | To : frontend`);
+            });
         }
     });
 
-    frontend.on('requestHourlyInitialBasicData', () => {
-        console.log(`${currentTimeReadable()} | Receive the requestHourlyInitialBasicData event from the frontend.`);
-        if(hourlyBasicChartData.length !== 0) {
-            frontend.emit('hourlyInitialBasicDataToFrontend', hourlyBasicChartData);
-            console.log(`${currentTimeReadable()} | Emit the hourlyInitialBasicDataToFrontend event to the frontend.`);
+    frontend.on('requestInitialHourlyNetStats', () => {
+        console.log(`${currentTimeReadable()} | Receive : 'requestInitialHourlyNetStats' | From : frontend`);
+        if (hourlyNetStats.length !== 0) {
+            frontend.emit('initialHourlyNetStatsToFrontend', hourlyNetStats);
+            console.log(`${currentTimeReadable()} | Emit : 'initialHourlyNetStatsToFrontend' | To : frontend`);
         }
     });
 
-    frontend.on('requestDailyInitialBasicData', () => {
-        console.log(`${currentTimeReadable()} | Receive the requestDailyInitialBasicData event from the frontend.`);
-        if(dailyBasicChartData.length !== 0) {
-            frontend.emit('dailyInitialBasicDataToFrontend', dailyBasicChartData);
-            console.log(`${currentTimeReadable()} | Emit the dailyInitialBasicDataToFrontend event to the frontend.`);
+    frontend.on('requestInitialDailyNetStats', () => {
+        console.log(`${currentTimeReadable()} | Receive : 'requestInitialDailyNetStats' | From : frontend`);
+        if (dailyNetStats.length !== 0) {
+            frontend.emit('initialDailyNetStatsToFrontend', dailyNetStats);
+            console.log(`${currentTimeReadable()} | Emit : 'initialDailyNetStatsToFrontend' | To : frontend`);
         }
     });
 
-    frontend.on('requestWeeklyInitialBasicData', () => {
-        console.log(`${currentTimeReadable()} | Receive the requestWeeklyInitialBasicData event from the frontend.`);
-        if(weeklyBasicChartData.length !== 0) {
-            frontend.emit('weeklyInitialBasicDataToFrontend', weeklyBasicChartData);
-            console.log(`${currentTimeReadable()} | Emit the weeklyInitialBasicDataToFrontend event to the frontend.`);
+    frontend.on('requestInitialWeeklyNetStats', () => {
+        console.log(`${currentTimeReadable()} | Receive : 'requestInitialWeeklyNetStats' | From : frontend`);
+        if (weeklyNetStats.length !== 0) {
+            frontend.emit('initialWeeklyNetStatsToFrontend', weeklyNetStats);
+            console.log(`${currentTimeReadable()} | Emit : 'initialWeeklyNetStatsToFrontend | To : frontend`);
         }
     });
 
