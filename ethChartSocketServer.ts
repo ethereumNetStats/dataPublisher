@@ -132,8 +132,7 @@ ethChartSocketClient.on('newDailyNetStats', (newDailyNetStats: netStats) => {
 
 ethChartSocketClient.on('newWeeklyNetStats', (newWeeklyNetStats: netStats) => {
     if (weeklyNetStats.length !== 0) {
-        weeklyNetStats.splice(-1);
-        weeklyNetStats = [newWeeklyNetStats, ...weeklyNetStats];
+        weeklyNetStats = [...weeklyNetStats.slice(1), newWeeklyNetStats];
         console.log(`${currentTimeReadable()} | Receive : 'newWeeklyNetStats' | From : dataPoolServer`);
     }
     ethChartSocketServer.emit('newWeeklyNetStatsToFrontend', newWeeklyNetStats);

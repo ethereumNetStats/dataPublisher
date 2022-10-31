@@ -1,41 +1,37 @@
-type recordOfEthDB = {
-    'id'?: number,
-    'startTimeReadable'?: string,
-    'endTimeReadable'?: string,
-    'startTimeUnix': number,
-    'endTimeUnix': number,
-    'actualStartTimeUnix': number,
-    'actualEndTimeUnix': number,
-    'startBlockNumber': number,
-    'endBlockNumber': number,
-    'blocks': number,
-    'totalBlockSize': number,
-    'averageBlockSize': number,
-    'totalDifficulty': number,
-    'averageDifficulty': number,
-    'totalUncleDifficulty': number,
-    'hashRate': number,
-    'transactions': number,
-    'transactionsPerBlock': number,
-    'noRecordFlag'?: boolean,
+type basicNetStats = {
+    startTimeReadable: string,
+    endTimeReadable: string,
+    startTimeUnix: number,
+    endTimeUnix: number,
+    actualStartTimeUnix: number,
+    actualEndTimeUnix: number,
+    startBlockNumber: number,
+    endBlockNumber: number,
+    blocks: number,
+    totalBlockSize: number,
+    averageBlockSize: number,
+    blockSizePerBlock: number,
+    totalDifficulty: string,
+    averageDifficulty: string,
+    difficultyPerBlock: string,
+    totalUncleDifficulty: string,
+    averageUncleDifficulty: string,
+    uncleDifficultyPerBlock: string,
+    totalNumberOfUncleBlocks: number,
+    averageNumberOfUncleBlocks: number,
+    numberOfUncleBlocksPerBlock: number,
+    hashRate: number,
+    totalTransactions: number,
+    averageTransactions: number,
+    transactionsPerBlock: number,
+    totalBaseFeePerGas: number,
+    averageBaseFeePerGas: number,
+    baseFeePerGasPerBlock: number,
+    totalGasUsed: number,
+    averageGasUsed: number,
+    gasUsedPerBlock: number,
+    noRecordFlag: boolean,
 };
-
-// type recordOfEthDBArray = Array<recordOfEthDB>;
-
-// type addresses = {
-//     startTime: number,
-//     endTime: number,
-//     value: number,
-// }
-
-// type arrayOfAddresses = Array<addresses>
-
-// type addressesInTimeRange = {
-//     minutely: arrayOfAddresses,
-//     hourly: arrayOfAddresses,
-//     daily: arrayOfAddresses,
-//     weekly: arrayOfAddresses
-// }
 
 type numberOfAddresses = {
     startTimeReadable: string,
@@ -46,12 +42,12 @@ type numberOfAddresses = {
     noRecordFlag: boolean,
 };
 
-type netStats = recordOfEthDB & Pick<numberOfAddresses, "numberOfAddress">;
+type netStats = basicNetStats & Pick<numberOfAddresses, "numberOfAddress">;
 
 type netStatsArray = Array<netStats>;
 
 export type {
-    recordOfEthDB,
+    basicNetStats,
     netStatsArray,
     netStats,
     numberOfAddresses,
