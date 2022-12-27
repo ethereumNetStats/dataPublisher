@@ -1,48 +1,81 @@
-//Define the type of the server => client events.
-import {netStats, netStatsArray} from "./types";
+// socket.ioイベントの定義に必要な型定義のインポート
+import {
+    netStats,
+    netStatsArray,
+    blockData,
+    blockDataArray,
+    requestBlockDetail,
+    responseBlockDetail,
+    responseBlockList, requestBlockList, requestBlockListPageByBlockNumber, responseBlockListPageByBlockNumber
+} from "./types";
 
+// データプールサーバーからデータパブリッシャーへエミットするイベント名とデータ型の定義
 type ServerToEthChartSocketClientEvents = {
     stillNoInitialMinutelyNetStats: () => void,
     stillNoInitialHourlyNetStats: () => void,
     stillNoInitialDailyNetStats: () => void,
     stillNoInitialWeeklyNetStats: () => void,
+    stillNoInitialBlockData: () => void,
 
     initialMinutelyNetStats: (initialMinutelyNetStats: netStatsArray) => void,
     initialHourlyNetStats: (initialHourlyNetStats: netStatsArray) => void,
     initialDailyNetStats: (initialDailyNetStats: netStatsArray) => void,
     initialWeeklyNetStats: (initialWeeklyNetStats: netStatsArray) => void,
+    initialBlockData: (initialBlockData: blockDataArray) => void,
 
     newMinutelyNetStats: (newMinutelyNetStats: netStats) => void,
     newHourlyNetStats: (newHourlyNetStats: netStats) => void,
     newDailyNetStats: (newDailyNetStats: netStats) => void,
     newWeeklyNetStats: (newWeeklyNetStats: netStats) => void,
+    newBlockData: (newBlockData: blockData) => void,
+
+    responseBlockDetail: (responseBlockDetail: responseBlockDetail) => void,
+    responseBlockList: (responseBlockList: responseBlockList) => void,
+    responseBlockListPageByBlockNumber: (responseBlockListPageByBlockNumber: responseBlockListPageByBlockNumber) => void,
 }
 
-//Define the type of the client => server events.
+// データパブリッシャーからデータプールサーバーへエミットするsocket.ioイベントのイベント名とデータ型の定義
 type ethChartSocketClientToServerEvents = {
     requestInitialMinutelyNetStats: () => void,
     requestInitialHourlyNetStats: () => void,
     requestInitialDailyNetStats: () => void,
     requestInitialWeeklyNetStats: () => void,
+    requestInitialBlockData: () => void,
+
+    requestBlockDetail: (requestBlockDetail: requestBlockDetail) => void,
+    requestBlockList: (requestBlockList: requestBlockList) => void,
+    requestBlockListPageByBlockNumber: (requestBlockListPageByBlockNumber: requestBlockListPageByBlockNumber) => void,
 }
 
+// データパブリッシャーから各フロントエンドへエミットするsocket.ioイベントのイベント名とデータ型の定義
 type ethChartSocketServerToFrontendEvents = {
-    initialMinutelyNetStatsToFrontend: () => void,
-    initialHourlyNetStatsToFrontend: () => void,
-    initialDailyNetStatsToFrontend: () => void,
-    initialWeeklyNetStatsToFrontend: () => void,
+    initialMinutelyNetStatsToFrontend: (initialMinutelyNetStatsToFrontend: netStatsArray) => void,
+    initialHourlyNetStatsToFrontend: (initialHourlyNetStatsToFrontend: netStatsArray) => void,
+    initialDailyNetStatsToFrontend: (initialDailyNetStatsToFrontend: netStatsArray) => void,
+    initialWeeklyNetStatsToFrontend: (initialWeeklyNetStatsToFrontend: netStatsArray) => void,
+    initialBlockDataToFrontend: (initialBlockDataToFrontend: blockDataArray) => void,
 
-    newMinutelyNetStats: () => void,
-    newHourlyNetStats: () => void,
-    newDailyNetStats: () => void,
-    newWeeklyNetStats: () => void,
+    newMinutelyNetStats: (newMinutelyNetStats: netStats) => void,
+    newHourlyNetStats: (newHourlyNetStats: netStats) => void,
+    newDailyNetStats: (newDailyNetStats: netStats) => void,
+    newWeeklyNetStats: (newWeeklyNetStats: netStats) => void,
+    newBlockData: (newBlockData: blockData) => void,
+
+    blockDetail: (blockData: blockData) => void,
+    responseBlockList: (responseBlockList: responseBlockList) => void,
+    responseBlockListPageByBlockNumber: (responseBlockListPageByBlockNumber: responseBlockListPageByBlockNumber) => void,
 }
 
+// 各フロントエンドからデータパブリッシャーへエミットされるsocket.ioイベントのイベント名とデータ型の定義
 type frontendToEthChartSocketServerEvents = {
     requestInitialMinutelyNetStats: () => void,
     requestInitialHourlyNetStats: () => void,
     requestInitialDailyNetStats: () => void,
     requestInitialWeeklyNetStats: () => void,
+
+    requestBlockDetail: (number: number) => void,
+    requestBlockList: (pageOffset: number) => void,
+    requestBlockListPageByBlockNumber: (blockNumber: number) => void,
 }
 
 export type {

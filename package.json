@@ -4,7 +4,7 @@
   "dependencies": {
     "socket.io-client": "^4.5.3",
     "socket.io": "^4.5.3",
-    "@pierogi.dev/readable_time": "^1.0.6",
+    "@ethereum_net_stats/readable_time": "^1.0.7",
     "dotenv": "^16.0.3"
   },
   "devDependencies": {
