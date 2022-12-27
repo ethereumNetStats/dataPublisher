@@ -1,0 +1,5 @@
+DATAPOOL_SERVER_LAN_ADDRESS=ws://127.0.0.1:2226
+
+SSL_CERTIFICATION_PRIVKEY=/etc/letsencrypt/live/********.***/privkey.pem
+SSL_CERTIFICATION_CERT=/etc/letsencrypt/live/********.***/cert.pem
+SSL_CERTIFICATION_CHAIN=/etc/letsencrypt/live/********.***/chain.pem

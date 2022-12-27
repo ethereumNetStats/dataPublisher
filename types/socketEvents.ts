@@ -10,7 +10,7 @@ import {
 } from "./types";
 
 // データプールサーバーからデータパブリッシャーへエミットするイベント名とデータ型の定義
-type ServerToEthChartSocketClientEvents = {
+type dataPoolServerToDataPublisherEvents = {
     stillNoInitialMinutelyNetStats: () => void,
     stillNoInitialHourlyNetStats: () => void,
     stillNoInitialDailyNetStats: () => void,
@@ -35,7 +35,7 @@ type ServerToEthChartSocketClientEvents = {
 }
 
 // データパブリッシャーからデータプールサーバーへエミットするsocket.ioイベントのイベント名とデータ型の定義
-type ethChartSocketClientToServerEvents = {
+type dataPublisherToDataPoolServerEvents = {
     requestInitialMinutelyNetStats: () => void,
     requestInitialHourlyNetStats: () => void,
     requestInitialDailyNetStats: () => void,
@@ -48,7 +48,7 @@ type ethChartSocketClientToServerEvents = {
 }
 
 // データパブリッシャーから各フロントエンドへエミットするsocket.ioイベントのイベント名とデータ型の定義
-type ethChartSocketServerToFrontendEvents = {
+type dataPublisherToFrontendEvents = {
     initialMinutelyNetStatsToFrontend: (initialMinutelyNetStatsToFrontend: netStatsArray) => void,
     initialHourlyNetStatsToFrontend: (initialHourlyNetStatsToFrontend: netStatsArray) => void,
     initialDailyNetStatsToFrontend: (initialDailyNetStatsToFrontend: netStatsArray) => void,
@@ -67,7 +67,7 @@ type ethChartSocketServerToFrontendEvents = {
 }
 
 // 各フロントエンドからデータパブリッシャーへエミットされるsocket.ioイベントのイベント名とデータ型の定義
-type frontendToEthChartSocketServerEvents = {
+type frontendToDataPublisherEvents = {
     requestInitialMinutelyNetStats: () => void,
     requestInitialHourlyNetStats: () => void,
     requestInitialDailyNetStats: () => void,
@@ -79,8 +79,8 @@ type frontendToEthChartSocketServerEvents = {
 }
 
 export type {
-    ServerToEthChartSocketClientEvents,
-    ethChartSocketClientToServerEvents,
-    ethChartSocketServerToFrontendEvents,
-    frontendToEthChartSocketServerEvents
+    dataPoolServerToDataPublisherEvents,
+    dataPublisherToDataPoolServerEvents,
+    dataPublisherToFrontendEvents,
+    frontendToDataPublisherEvents
 }
