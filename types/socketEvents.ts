@@ -6,7 +6,8 @@ import {
     blockDataArray,
     requestBlockDetail,
     responseBlockDetail,
-    responseBlockList, requestBlockList, requestBlockListPageByBlockNumber, responseBlockListPageByBlockNumber
+    responseBlockList, requestBlockList, requestBlockListPageByBlockNumber, responseBlockListPageByBlockNumber,
+    requestTransactionDetail, responseTransactionDetail
 } from "./types";
 
 // データプールサーバーからデータパブリッシャーへエミットするイベント名とデータ型の定義
@@ -32,6 +33,7 @@ type dataPoolServerToDataPublisherEvents = {
     responseBlockDetail: (responseBlockDetail: responseBlockDetail) => void,
     responseBlockList: (responseBlockList: responseBlockList) => void,
     responseBlockListPageByBlockNumber: (responseBlockListPageByBlockNumber: responseBlockListPageByBlockNumber) => void,
+    responseTransactionDetail: (responseTransactionDetail: responseTransactionDetail) => void,
 }
 
 // データパブリッシャーからデータプールサーバーへエミットするsocket.ioイベントのイベント名とデータ型の定義
@@ -41,10 +43,10 @@ type dataPublisherToDataPoolServerEvents = {
     requestInitialDailyNetStats: () => void,
     requestInitialWeeklyNetStats: () => void,
     requestInitialBlockData: () => void,
-
     requestBlockDetail: (requestBlockDetail: requestBlockDetail) => void,
     requestBlockList: (requestBlockList: requestBlockList) => void,
     requestBlockListPageByBlockNumber: (requestBlockListPageByBlockNumber: requestBlockListPageByBlockNumber) => void,
+    requestTransactionDetail: (requestTransactionDetail: requestTransactionDetail) => void,
 }
 
 // データパブリッシャーから各フロントエンドへエミットするsocket.ioイベントのイベント名とデータ型の定義
@@ -76,6 +78,7 @@ type frontendToDataPublisherEvents = {
     requestBlockDetail: (number: number) => void,
     requestBlockList: (pageOffset: number) => void,
     requestBlockListPageByBlockNumber: (blockNumber: number) => void,
+    requestTransactionDetail: (requestTransactionDetail: requestTransactionDetail) => void,
 }
 
 export type {

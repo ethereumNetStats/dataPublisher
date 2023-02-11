@@ -16,9 +16,9 @@ import type {
     blockDataArray,
     netStats,
     netStatsArray,
-    frontends,
     responseBlockList,
-    responseBlockDetail, requestBlockListPageByBlockNumber, responseBlockListPageByBlockNumber
+    responseBlockDetail, requestBlockListPageByBlockNumber, responseBlockListPageByBlockNumber,
+    requestTransactionDetail, responseTransactionDetail
 } from "./types/types";
 
 // socket.ioのイベント定義のインポート
@@ -237,6 +237,13 @@ clientToDataPoolServer.on('responseBlockListPageByBlockNumber', (responseBlockLi
     console.log(`${currentTimeReadable()} | Emit : 'responseBlockListPageByBlockNumber' | From : frontend | Id : ${responseBlockListPageByBlockNumber.frontendId}`);
 });
 
+// ユーバーがトップページでトランザクションハッシュを入力した時の検索結果を受け取るイベント'responseTransactionDetail'の処理
+clientToDataPoolServer.on('responseTransactionDetail', (responseTransactionDetail: responseTransactionDetail) => {
+    console.log(`${currentTimeReadable()} | Receive : 'responseTransactionDetail' | From : dataPoolServer`);
+    dataPublisher.to(responseTransactionDetail.frontendId).emit('responseTransactionDetail', responseTransactionDetail);
+    console.log(`${currentTimeReadable()} | Emit : 'responseTransactionDetail' | From : frontend | Id : ${responseTransactionDetail.frontendId}`);
+});
+
 // ユーザーのフロントエンドと通信するためのSSL証明書を使用するHTTPサーバーオブジェクトの生成
 const httpsServer = https.createServer({
     key: fs.readFileSync(`${process.env.SSL_CERTIFICATION_PRIVKEY}`),
@@ -252,13 +259,13 @@ const dataPublisher: Server = new Server<frontendToDataPublisherEvents, dataPubl
 });
 
 // ユーザーのフロントエンドのIDを格納する配列の初期化
-let frontends: frontends = [];
+// let frontends: frontends = [];
 
 dataPublisher.on('connect', (frontend) => {
     console.log(`${currentTimeReadable()} | Connect : frontend`);
 
     // 新たなユーザーからの接続があった場合にそのIDを配列に追加
-    frontends.push(frontend.id);
+    // frontends.push(frontend.id);
 
     // １分ごとの集計データの初期データの要求イベント'requestInitialMinutelyNetStats'をフロントエンドから受け取った時の処理
     frontend.on('requestInitialMinutelyNetStats', () => {
@@ -329,10 +336,19 @@ dataPublisher.on('connect', (frontend) => {
 
     // ユーザーがブロックナンバーをクリックまたは入力した時のイベント'requestBlockListPageByBlockNumber'の処理
     frontend.on('requestBlockListPageByBlockNumber', (blockNumber: number) => {
-        console.log(`${currentTimeReadable()} | Receive : 'requestBlockListPageByNumber | From : frontend | Id : ${frontend.id}`);
-        // ユーザーの要求するブロックナンバーに当該ユーザーのフロントエンドIDを付加してデータプールサーバーに転送
+        console.log(`${currentTimeReadable()} | Receive : 'requestBlockListPageByNumber' | From : frontend | Id : ${frontend.id}`);
+        // ユーザーが要求するブロックナンバーに当該ユーザーのフロントエンドIDを付加してデータプールサーバーに転送
         clientToDataPoolServer.emit('requestBlockListPageByBlockNumber', {blockNumber: blockNumber, frontendId: frontend.id});
-        console.log(`${currentTimeReadable()} | Emit : 'requestBlockListPageByNumber | To : dataPoolServer`);
+        console.log(`${currentTimeReadable()} | Emit : 'requestBlockListPageByNumber' | To : dataPoolServer`);
+    });
+
+    // ユーザーがトランザクションハッシュを入力した時のイベント'requestTransactionDetail'の処理
+    frontend.on('requestTransactionDetail', (requestTransactionDetail) => {
+        console.log(`${currentTimeReadable()} | Receive : 'requestTransactionDetail' | From: frontend | Id : ${frontend.id} | To : dataPoolServer | Transaction hash : ${requestTransactionDetail.transactionHash}`);
+        // 受け取ったrequestTransactionDetailにフロントエンドのIDをを含むリクエストオブジェクトを生成
+        requestTransactionDetail.frontendId = frontend.id;
+        // リクエストオブジェクトをdataPoolServerに送信
+        clientToDataPoolServer.emit('requestTransactionDetail', requestTransactionDetail);
     });
 
     // フロントエンドとの接続が切断された時の処理
@@ -341,6 +357,7 @@ dataPublisher.on('connect', (frontend) => {
         // サーバー側から明示的に切断
         frontend.disconnect();
     });
+
 });
 
 // ポート8443でリスニング開始
